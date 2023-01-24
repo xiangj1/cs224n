@@ -107,7 +107,6 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
     return x
 
 
-
 def sanity_check():
     quad = lambda x: (np.sum(x ** 2), x * 2)
 

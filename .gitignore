@@ -1,0 +1,4 @@
+*.py
+_MACOSX
+*.npy
+*.pickle
