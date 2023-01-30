@@ -248,6 +248,8 @@ class Parser(object):
         model = ModelWrapper(self, dataset, sentence_id_to_idx)
         dependencies = minibatch_parse(sentences, model, eval_batch_size)
 
+        print(dependencies)
+
         UAS = all_tokens = 0.0
         with tqdm(total=len(dataset)) as prog:
             for i, ex in enumerate(dataset):
