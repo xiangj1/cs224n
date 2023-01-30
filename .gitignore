@@ -2,3 +2,6 @@
 _MACOSX
 *.npy
 *.pickle
+*.pyc
+*/__pycache__/*
+.vscode/*
