@@ -8,3 +8,4 @@ _MACOSX
 *.ipynb_checkpoints/*
 *.DS_Store
 *.pem
+*.bin*
