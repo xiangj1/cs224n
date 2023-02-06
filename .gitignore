@@ -5,3 +5,6 @@ _MACOSX
 *.pyc
 */__pycache__/*
 .vscode/*
+*.ipynb_checkpoints/*
+*.DS_Store
+*.pem
