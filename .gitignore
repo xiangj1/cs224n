@@ -9,3 +9,5 @@ _MACOSX
 *.DS_Store
 *.pem
 *.bin*
+
+*.pt
