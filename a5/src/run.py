@@ -64,12 +64,17 @@ Don't change above here; write your code below
 # note: models should moved to device defined on line 34.
 
 if args.variant == 'vanilla':
-    pass # [part c] Make some model here
+    model = model.GPT(mconf)
 elif args.variant == 'perceiver':
     # set mconf.perceiver, and mconf.bottleneck_dim parameters appropriately.
-    pass # [part g] Make some other model here
+    mconf.perceiver = True
+    mconf.bottleneck_dim = args.bottleneck_dim
+    model = model.GPT(mconf)
 else:
     raise ValueError("Unknown model variant")
+
+if(torch.cuda.is_available()):
+    model.cuda()
 
 # Perform pretraining, finetuning, or evaluation
 if args.function == 'pretrain':
@@ -92,7 +97,21 @@ if args.function == 'pretrain':
     # final_tokens=200*len(pretrain_dataset)*block_size
     # num_workers=4
     # writer=writer 
-    raise NotImplementedError
+
+    tConf = trainer.TrainerConfig(
+        max_epochs=650, 
+        batch_size=128, 
+        learning_rate=args.pretrain_lr, 
+        lr_decay=True, 
+        warmup_tokens=512*20, 
+        final_tokens=200*len(pretrain_dataset)*block_size, 
+        num_workers=0, 
+        writer=writer)
+
+    trainer = trainer.Trainer(model, pretrain_dataset, None, tConf)
+    trainer.train()
+
+    torch.save(model.state_dict(), args.writing_params_path)
 elif args.function == 'finetune':
     assert args.writing_params_path is not None
     assert args.finetune_corpus_path is not None
@@ -128,8 +147,28 @@ elif args.function == 'finetune':
     #         writer=writer
     #     You can use the args.reading_params_path flag to switch between the
     #     number of epochs for each case.
-     
-    raise NotImplementedError
+
+    finetune_dataset = dataset.NameDataset(pretrain_dataset, open(args.finetune_corpus_path).read())
+
+    tConf = trainer.TrainerConfig(
+        max_epochs=5, 
+        batch_size=256, 
+        learning_rate=args.finetune_lr, 
+        lr_decay=True, 
+        warmup_tokens=512*20, 
+        final_tokens=200*len(pretrain_dataset)*block_size, 
+        num_workers=0, 
+        writer=writer)
+
+    if(args.reading_params_path is not None):
+        print('Loading pretrained model parameters from', args.reading_params_path, '...')
+        model.load_state_dict(torch.load(args.reading_params_path))
+
+    trainer = trainer.Trainer(model, finetune_dataset, None, tConf)    
+    trainer.train()
+
+    torch.save(model.state_dict(), args.writing_params_path)
+    
 elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None

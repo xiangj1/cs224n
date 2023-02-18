@@ -133,12 +133,18 @@ Here are some examples of input-output pairs (x, y):
   x: Khatchig Mouradian. Khatchig Mouradian is a jour⁇and tran⁇nalist, writer ⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
   y: hatchig Mouradian. Khatchig Mouradian is a jour⁇and tran⁇nalist, writer ⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
 
+  x: Khatchig Mouradian. Khatchig Mouradian is a journalis⁇n in Lebanon .⁇t, writer and translator bor□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
+  y: hatchig Mouradian. Khatchig Mouradian is a journalis⁇n in Lebanon .⁇t, writer and translator bor□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
+
   x: Jaco⁇enry ⁇b H⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
   y: aco⁇enry ⁇b H⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
 
   x: John Stephen. Born in Glasgow, Steph⁇lder's apprentice on⁇en became a we⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
   y: ohn Stephen. Born in Glasgow, Steph⁇lder's apprentice on⁇en became a we⁇□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
 
+
+x: John Stephen. Born in Glasgow, Stephen became a welder's apprentice on leaving ⁇⁇school .□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
+y: ohn Stephen. Born in Glasgow, Stephen became a welder's apprentice on leaving ⁇⁇school .□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
 
 """
 class CharCorruptionDataset(Dataset):
@@ -167,21 +173,61 @@ class CharCorruptionDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        # TODO [part e]: see spec above
-        raise NotImplementedError
+        # raise NotImplementedError()
+        # Use the idx argument to retrieve the element of self.data at the given index
+        doc = self.data[idx]
+
+        # Randomly truncate the document to a length no less than 4 characters,
+        # and no more than int(self.block_size*7/8) characters.
+        length = random.randint(4, int(self.block_size*7/8))
+        start = random.randint(0, max(0, len(doc)-length))
+        doc = doc[start:start+length]
+
+        # print('doc', doc)
+
+        # Randomly select the position of the masked content
+        masked_length = length // 4
+        masked_start = random.randint(0, length - masked_length)
+        masked_end = masked_start + masked_length
+        masked_content = doc[masked_start:masked_end]
+
+        # Rearrange the substrings to form the masked string
+        prefix = doc[:masked_start]
+        suffix = doc[masked_end:]
+        pads = self.PAD_CHAR * (self.block_size - len(prefix) - len(self.MASK_CHAR) - len(suffix) - len(self.MASK_CHAR) - len(masked_content))
+        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + pads
+
+        # print('masked_string', masked_string)
+
+        # print('masked_string', masked_string)
+
+        # Convert the masked string to input and output tensors
+        x = [self.stoi[c] for c in masked_string[:-1]]
+        y = [self.stoi[c] for c in masked_string[1:]]
+
+        # Pad the input and output tensors with PAD_CHAR to self.block_size
+        x = x + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(x))
+        y = y + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(y))
+
+        # Convert the tensors to Long tensors and return as a tuple
+        x = torch.LongTensor(x)
+        y = torch.LongTensor(y)
+        return x, y
 
 """
 Code under here is strictly for your debugging purposes; feel free to modify
 as desired.
 """
-if __name__ == '__main__':
-    argp = argparse.ArgumentParser()
-    argp.add_argument('dataset_type', help="Type of dataset to sample from."
-            "Options: namedata, charcorruption.",
-            choices=["namedata", "charcorruption"])
-    args = argp.parse_args()
 
-    if args.dataset_type == 'namedata':
+random.seed(42)
+if __name__ == '__main__':
+    # argp = argparse.ArgumentParser()
+    # argp.add_argument('dataset_type', help="Type of dataset to sample from."
+    #         "Options: namedata, charcorruption.",
+    #         choices=["namedata", "charcorruption"], default="charcorruption")
+    # args = argp.parse_args()
+
+    if False and args.dataset_type == 'namedata':
         # Even if it hasn't been implemented, we use it to define the vocab
         corruption_dataset = CharCorruptionDataset(open('wiki.txt', encoding='utf-8').read(), 128)
         # Make the name dataset
@@ -192,7 +238,7 @@ if __name__ == '__main__':
             print('x:', ''.join([name_dataset.itos[int(c)] for c in x]))
             print('y:', ''.join([name_dataset.itos[int(c)] for c in y]))
         pass
-    elif args.dataset_type == 'charcorruption':
+    elif True or args.dataset_type == 'charcorruption':
         corruption_dataset = CharCorruptionDataset(open('wiki.txt', encoding='utf-8').read(), 128)
         for _, example in zip(range(4), corruption_dataset):
             x, y = example
