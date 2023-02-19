@@ -151,7 +151,7 @@ elif args.function == 'finetune':
     finetune_dataset = dataset.NameDataset(pretrain_dataset, open(args.finetune_corpus_path).read())
 
     tConf = trainer.TrainerConfig(
-        max_epochs=5, 
+        max_epochs=10, 
         batch_size=256, 
         learning_rate=args.finetune_lr, 
         lr_decay=True, 

@@ -60,6 +60,8 @@ class Trainer:
     def train(self):
         model, config = self.model, self.config
 
+        print(model.device_ids)
+
         # create the optimizer
         no_decay = ["bias", "LayerNorm.weight"]
         params_decay = [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)]

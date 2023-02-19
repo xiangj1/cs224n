@@ -180,14 +180,13 @@ class CharCorruptionDataset(Dataset):
         # Randomly truncate the document to a length no less than 4 characters,
         # and no more than int(self.block_size*7/8) characters.
         length = random.randint(4, int(self.block_size*7/8))
-        start = random.randint(0, max(0, len(doc)-length))
-        doc = doc[start:start+length]
+        doc = doc[:length]
 
         # print('doc', doc)
 
         # Randomly select the position of the masked content
-        masked_length = length // 4
-        masked_start = random.randint(0, length - masked_length)
+        masked_length = random.randint(int(length/8), int(3*length/8))
+        masked_start = random.randint(1, length - masked_length - 1)
         masked_end = masked_start + masked_length
         masked_content = doc[masked_start:masked_end]
 
@@ -196,6 +195,8 @@ class CharCorruptionDataset(Dataset):
         suffix = doc[masked_end:]
         pads = self.PAD_CHAR * (self.block_size - len(prefix) - len(self.MASK_CHAR) - len(suffix) - len(self.MASK_CHAR) - len(masked_content))
         masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + pads
+
+        assert len(masked_string) == self.block_size
 
         # print('masked_string', masked_string)
 
@@ -206,8 +207,8 @@ class CharCorruptionDataset(Dataset):
         y = [self.stoi[c] for c in masked_string[1:]]
 
         # Pad the input and output tensors with PAD_CHAR to self.block_size
-        x = x + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(x))
-        y = y + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(y))
+        # x = x + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(x))
+        # y = y + [self.stoi[self.PAD_CHAR]] * (self.block_size - len(y))
 
         # Convert the tensors to Long tensors and return as a tuple
         x = torch.LongTensor(x)
@@ -219,15 +220,15 @@ Code under here is strictly for your debugging purposes; feel free to modify
 as desired.
 """
 
-random.seed(42)
+# random.seed(42)
 if __name__ == '__main__':
-    # argp = argparse.ArgumentParser()
-    # argp.add_argument('dataset_type', help="Type of dataset to sample from."
-    #         "Options: namedata, charcorruption.",
-    #         choices=["namedata", "charcorruption"], default="charcorruption")
-    # args = argp.parse_args()
+    argp = argparse.ArgumentParser()
+    argp.add_argument('dataset_type', help="Type of dataset to sample from."
+            "Options: namedata, charcorruption.",
+            choices=["namedata", "charcorruption"], default="charcorruption")
+    args = argp.parse_args()
 
-    if False and args.dataset_type == 'namedata':
+    if args.dataset_type == 'namedata':
         # Even if it hasn't been implemented, we use it to define the vocab
         corruption_dataset = CharCorruptionDataset(open('wiki.txt', encoding='utf-8').read(), 128)
         # Make the name dataset
@@ -238,10 +239,11 @@ if __name__ == '__main__':
             print('x:', ''.join([name_dataset.itos[int(c)] for c in x]))
             print('y:', ''.join([name_dataset.itos[int(c)] for c in y]))
         pass
-    elif True or args.dataset_type == 'charcorruption':
+    elif args.dataset_type == 'charcorruption':
         corruption_dataset = CharCorruptionDataset(open('wiki.txt', encoding='utf-8').read(), 128)
         for _, example in zip(range(4), corruption_dataset):
             x, y = example
+            # print(x.shape, y.shape)
             print('x:', ''.join([corruption_dataset.itos[int(c)] for c in x]))
             print('y:', ''.join([corruption_dataset.itos[int(c)] for c in y]))
     else:
